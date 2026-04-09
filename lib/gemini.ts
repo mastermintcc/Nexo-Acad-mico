@@ -6,9 +6,11 @@ let aiClient: any = null;
 
 function getAiClient() {
   if (!aiClient) {
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    // Tenta primeiro a variável pública do Next.js, depois a variável padrão do sistema
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    
     if (!apiKey) {
-      throw new Error('A chave de API do Gemini (NEXT_PUBLIC_GEMINI_API_KEY) não foi configurada nas variáveis de ambiente.');
+      throw new Error('A chave de API do Gemini não foi encontrada. Certifique-se de adicioná-la nos "Secrets" do projeto com o nome NEXT_PUBLIC_GEMINI_API_KEY.');
     }
     aiClient = new GoogleGenAI({ apiKey });
   }
