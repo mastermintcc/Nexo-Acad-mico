@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Loader2, Mail, Lock, User, Chrome } from 'lucide-react'
 
 interface AuthModalProps {
-  trigger?: React.ReactNode
+  trigger?: React.ReactElement
   defaultMode?: 'login' | 'signup'
 }
 
@@ -60,9 +60,7 @@ export default function AuthModal({ trigger, defaultMode = 'login' }: AuthModalP
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || <Button variant="outline">Entrar</Button>}
-      </DialogTrigger>
+      <DialogTrigger render={trigger || <Button variant="outline">Entrar</Button>} />
       <DialogContent className="sm:max-w-[400px] rounded-3xl border-2 border-black p-0 overflow-hidden">
         <div className="bg-black p-8 text-white">
           <DialogHeader>
