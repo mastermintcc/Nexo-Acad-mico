@@ -15,13 +15,35 @@ function getAiClient() {
   return aiClient;
 }
 
-export async function analyzeAcademicWork(fileBase64: string, mimeType: string, type: 'fichamento' | 'resenha') {
+export async function analyzeAcademicWork(
+  fileBase64: string, 
+  mimeType: string, 
+  type: 'fichamento' | 'resenha',
+  quotesCount: number = 5
+) {
   const ai = getAiClient();
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-3.1-pro-preview";
   
+  const systemInstruction = `Você é um assistente acadêmico de alta precisão especializado em normas ABNT. 
+Sua tarefa é analisar documentos acadêmicos e gerar fichamentos ou resenhas críticas.
+Sempre utilize citações diretas no formato ABNT: "Citação" (Autor, Ano, p. Página).
+Seja extremamente rigoroso com a veracidade das informações e a formatação acadêmica.`;
+
   const prompt = type === 'fichamento' 
-    ? "Analise este documento acadêmico e gere um fichamento completo em Português. Inclua as principais citações diretas do texto, organizadas por temas ou capítulos. Destaque os conceitos fundamentais."
-    : "Analise este documento acadêmico e gere uma resenha crítica completa em Português. Inclua: Contexto, Problemática, Objetivo, Metodologia e Resultados. Seja analítico e siga as normas acadêmicas.";
+    ? `Analise este documento acadêmico e gere um FICHAMENTO completo em Português. 
+O fichamento deve conter:
+1. Referência Bibliográfica Completa (conforme ABNT).
+2. Resumo dos principais argumentos.
+3. Extração de EXATAMENTE ${quotesCount} citações diretas relevantes, cada uma acompanhada de sua referência (Autor, Ano, p. Página).
+4. Análise crítica sucinta dos conceitos fundamentais.`
+    : `Analise este documento acadêmico e gere uma RESENHA CRÍTICA completa em Português. 
+A resenha deve conter:
+1. Referência Bibliográfica Completa (conforme ABNT).
+2. Apresentação da obra (Autor, contexto).
+3. Resumo da obra (Problemática, Objetivo, Metodologia e Resultados).
+4. Análise Crítica (Contribuições e limitações).
+5. Conclusão.
+Utilize citações diretas pontuais para embasar a análise, sempre no formato (Autor, Ano, p. Página).`;
 
   const filePart = {
     inlineData: {
@@ -33,6 +55,10 @@ export async function analyzeAcademicWork(fileBase64: string, mimeType: string, 
   const response = await ai.models.generateContent({
     model: model,
     contents: { parts: [filePart, { text: prompt }] },
+    config: {
+      systemInstruction: systemInstruction,
+      temperature: 0.2, // Lower temperature for higher precision
+    }
   });
 
   return response.text;

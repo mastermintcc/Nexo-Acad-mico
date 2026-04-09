@@ -16,12 +16,14 @@ import { supabase } from '@/lib/supabase'
 import mammoth from 'mammoth'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
+import ReactMarkdown from 'react-markdown'
 
 export default function AnalisePage() {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [analysisType, setAnalysisType] = useState<'fichamento' | 'resenha'>('fichamento')
+  const [quotesCount, setQuotesCount] = useState(5)
   const { user } = useAuth()
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -51,14 +53,13 @@ export default function AnalisePage() {
     try {
       // 1. Upload do arquivo para o Supabase Storage (Bucket: Caixadetalha)
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}/${Math.random()}.${fileExt}`
+      const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('Caixadetalha')
         .upload(fileName, file)
 
       if (uploadError) {
         console.error('Erro no upload:', uploadError.message)
-        // Continuamos mesmo se o upload falhar, mas avisamos no console
       }
 
       let contentBase64 = ''
@@ -70,34 +71,41 @@ export default function AnalisePage() {
         contentBase64 = btoa(unescape(encodeURIComponent(text)))
         mimeType = 'text/plain'
       } else {
-        const arrayBuffer = await file.arrayBuffer()
-        const bytes = new Uint8Array(arrayBuffer)
-        let binary = ''
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i])
-        }
-        contentBase64 = btoa(binary)
-      }
-
-      const analysis = await analyzeAcademicWork(contentBase64, mimeType, analysisType)
-      const finalResult = analysis || "Não foi possível gerar a análise."
-      setResult(finalResult)
-
-      if (user) {
-        const { error } = await supabase.from('analyses').insert({
-          user_id: user.id,
-          file_name: file.name,
-          file_type: file.type,
-          result: finalResult,
-          type: analysisType,
-          file_path: uploadData?.path || null // Salvamos o caminho do arquivo se o upload deu certo
+        // Melhor forma de converter para base64 no navegador
+        contentBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1]
+            resolve(base64)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
         })
-        if (error) console.error('Error saving analysis:', error.message)
       }
 
-      setLoading(false)
-    } catch (error) {
-      console.error(error)
+      const analysis = await analyzeAcademicWork(contentBase64, mimeType, analysisType, quotesCount)
+      
+      if (!analysis) {
+        throw new Error("A IA não retornou nenhum resultado. Tente novamente.")
+      }
+
+      setResult(analysis)
+
+      const { error: dbError } = await supabase.from('analyses').insert({
+        user_id: user.id,
+        file_name: file.name,
+        file_type: file.type,
+        result: analysis,
+        type: analysisType,
+        file_path: uploadData?.path || null
+      })
+      
+      if (dbError) console.error('Error saving analysis:', dbError.message)
+
+    } catch (error: any) {
+      console.error('Erro na análise:', error)
+      alert(`Erro: ${error.message || 'Ocorreu um erro inesperado durante a análise.'}`)
+    } finally {
       setLoading(false)
     }
   }
@@ -105,13 +113,40 @@ export default function AnalisePage() {
   const downloadPDF = () => {
     if (!result) return
     const doc = new jsPDF()
-    const splitText = doc.splitTextToSize(result, 180)
-    doc.setFontSize(16)
-    doc.text(`Nexo Acadêmico - ${analysisType === 'fichamento' ? 'Fichamento' : 'Resenha'}`, 10, 10)
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 20
+    const maxLineWidth = pageWidth - (margin * 2)
+    
+    doc.setFontSize(18)
+    doc.setTextColor(37, 99, 235) // Blue-600
+    doc.text(`Nexo Acadêmico - ${analysisType === 'fichamento' ? 'Fichamento' : 'Resenha'}`, margin, 20)
+    
     doc.setFontSize(10)
-    doc.text(`Arquivo: ${file?.name}`, 10, 18)
-    doc.setFontSize(12)
-    doc.text(splitText, 10, 30)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Arquivo: ${file?.name}`, margin, 28)
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, margin, 33)
+    
+    doc.setDrawColor(0, 0, 0)
+    doc.line(margin, 38, pageWidth - margin, 38)
+    
+    doc.setFontSize(11)
+    doc.setTextColor(0, 0, 0)
+    
+    // Split text into lines that fit the page width
+    const splitText = doc.splitTextToSize(result, maxLineWidth)
+    
+    let cursorY = 48
+    const pageHeight = doc.internal.pageSize.getHeight()
+    
+    splitText.forEach((line: string) => {
+      if (cursorY > pageHeight - margin) {
+        doc.addPage()
+        cursorY = margin
+      }
+      doc.text(line, margin, cursorY)
+      cursorY += 7
+    })
+    
     doc.save(`${analysisType}_${file?.name || 'analise'}.pdf`)
   }
 
@@ -172,13 +207,38 @@ export default function AnalisePage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                  <Tabs defaultValue="fichamento" className="w-full md:w-auto" onValueChange={(v) => setAnalysisType(v as any)}>
-                    <TabsList className="bg-black/5 p-1 rounded-full">
-                      <TabsTrigger value="fichamento" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">Fichamento</TabsTrigger>
-                      <TabsTrigger value="resenha" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">Resenha</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                <div className="flex flex-col md:flex-row gap-6 items-end justify-between">
+                  <div className="flex flex-col gap-4 w-full md:w-auto">
+                    <Tabs defaultValue="fichamento" className="w-full md:w-auto" onValueChange={(v) => setAnalysisType(v as any)}>
+                      <TabsList className="bg-black/5 p-1 rounded-full">
+                        <TabsTrigger value="fichamento" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">Fichamento</TabsTrigger>
+                        <TabsTrigger value="resenha" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm">Resenha</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+
+                    {analysisType === 'fichamento' && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="flex flex-col gap-2"
+                      >
+                        <label className="text-xs font-bold uppercase tracking-widest text-black/40">Quantidade de Citações</label>
+                        <div className="flex items-center gap-4">
+                          <input 
+                            type="range" 
+                            min="1" 
+                            max="20" 
+                            value={quotesCount} 
+                            onChange={(e) => setQuotesCount(parseInt(e.target.value))}
+                            className="w-32 accent-blue-600"
+                          />
+                          <span className="font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                            {quotesCount}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
 
                   <Button 
                     onClick={handleAnalyze} 
@@ -223,8 +283,8 @@ export default function AnalisePage() {
                   </Button>
                 </CardHeader>
                 <CardContent className="p-8">
-                  <div className="prose prose-blue max-w-none whitespace-pre-wrap text-lg leading-relaxed text-black/80">
-                    {result}
+                  <div className="prose prose-blue max-w-none text-lg leading-relaxed text-black/80">
+                    <ReactMarkdown>{result}</ReactMarkdown>
                   </div>
                 </CardContent>
               </Card>
