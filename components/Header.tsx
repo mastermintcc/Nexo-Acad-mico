@@ -21,6 +21,7 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/" className="text-sm font-bold hover:text-blue-600 transition-colors">Início</Link>
           <Link href="/analise" className="text-sm font-bold hover:text-blue-600 transition-colors">Análise</Link>
+          <Link href="/paragfrase" className="text-sm font-bold hover:text-blue-600 transition-colors">P Paragfrase</Link>
           <Link href="/historico" className="text-sm font-bold hover:text-blue-600 transition-colors">Histórico</Link>
           {profile?.role === 'admin' && (
             <Link href="/crm" className="text-sm font-bold hover:text-blue-600 transition-colors">CRM</Link>

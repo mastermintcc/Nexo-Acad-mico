@@ -63,3 +63,48 @@ Utilize citações diretas pontuais para embasar a análise, sempre no formato (
 
   return response.text;
 }
+
+export async function paraphraseText(
+  text: string,
+  tone: 'formal' | 'academico' | 'simples' | 'criativo',
+  intensity: 'leve' | 'moderada' | 'profunda'
+) {
+  const ai = getAiClient();
+  const model = "gemini-3.1-pro-preview";
+
+  const systemInstruction = `Você é um especialista em escrita e paráfrase acadêmica/profissional. 
+Sua tarefa é reescrever o texto fornecido pelo usuário, melhorando a fluidez, clareza e vocabulário, sem perder o sentido original e garantindo que não haja plágio.`;
+
+  const toneDescriptions = {
+    formal: "um tom formal e profissional, adequado para comunicações executivas",
+    academico: "um tom estritamente acadêmico, seguindo normas de escrita científica e vocabulário erudito",
+    simples: "um tom simples e direto, facilitando a compreensão para qualquer público",
+    criativo: "um tom criativo e envolvente, com vocabulário variado e construções dinâmicas"
+  };
+
+  const intensityDescriptions = {
+    leve: "faça apenas ajustes pontuais de gramática e fluidez",
+    moderada: "reescreva sentenças inteiras para melhorar o ritmo e a clareza",
+    profunda: "reestruture completamente o texto, mantendo apenas a ideia central, mas com palavras e ordens totalmente novas"
+  };
+
+  const prompt = `Por favor, parafraseie o seguinte texto:
+"${text}"
+
+Instruções específicas:
+- Utilize ${toneDescriptions[tone]}.
+- A intensidade da mudança deve ser ${intensityDescriptions[intensity]}.
+- O resultado deve ser um texto novo, original e sem cópias literais do original.
+- Mantenha o idioma original do texto (Português).`;
+
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: [{ text: prompt }],
+    config: {
+      systemInstruction: systemInstruction,
+      temperature: 0.7, // Slightly higher for creativity in paraphrasing
+    }
+  });
+
+  return response.text;
+}
