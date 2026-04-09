@@ -6,9 +6,10 @@ import { Button } from './ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { User, LogOut, Shield, Clock } from 'lucide-react'
+import AuthModal from './AuthModal'
 
 export default function Header() {
-  const { user, profile, login, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md">
@@ -57,13 +58,18 @@ export default function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="ghost" className="text-sm font-bold" onClick={() => login()}>Entrar</Button>
-              <Button 
-                onClick={() => login()}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full px-6"
-              >
-                Começar
-              </Button>
+              <AuthModal 
+                trigger={<Button variant="ghost" className="text-sm font-bold">Entrar</Button>} 
+                defaultMode="login"
+              />
+              <AuthModal 
+                trigger={
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-full px-6">
+                    Começar
+                  </Button>
+                } 
+                defaultMode="signup"
+              />
             </>
           )}
         </div>

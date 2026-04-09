@@ -15,9 +15,10 @@ import { useAuth } from '@/hooks/useAuth'
 import mammoth from 'mammoth'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
+import AuthModal from '@/components/AuthModal'
 
 export default function HomePage() {
-  const { login, profile } = useAuth()
+  const { profile } = useAuth()
 
   return (
     <div className="min-h-screen bg-white text-black font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -48,13 +49,17 @@ export default function HomePage() {
                   Começar Agora
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
-                onClick={() => login()}
-                className="w-full sm:w-auto border-2 border-black rounded-full px-10 py-8 text-xl font-bold hover:bg-black hover:text-white transition-all"
-              >
-                Fazer Login
-              </Button>
+              <AuthModal 
+                trigger={
+                  <Button 
+                    variant="outline" 
+                    className="w-full sm:w-auto border-2 border-black rounded-full px-10 py-8 text-xl font-bold hover:bg-black hover:text-white transition-all"
+                  >
+                    Fazer Login
+                  </Button>
+                }
+                defaultMode="login"
+              />
             </div>
           </motion.div>
         </section>
@@ -163,11 +168,14 @@ export default function HomePage() {
               Pronto para elevar seu <br /> nível acadêmico?
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
-              <Link href="/analise">
-                <Button className="bg-white text-blue-600 hover:bg-white/90 rounded-full px-12 py-8 text-xl font-bold shadow-2xl">
-                  Começar Grátis
-                </Button>
-              </Link>
+              <AuthModal 
+                trigger={
+                  <Button className="bg-white text-blue-600 hover:bg-white/90 rounded-full px-12 py-8 text-xl font-bold shadow-2xl">
+                    Começar Grátis
+                  </Button>
+                }
+                defaultMode="signup"
+              />
             </div>
           </div>
         </section>

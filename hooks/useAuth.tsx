@@ -9,6 +9,8 @@ interface AuthContextType {
   profile: any | null
   loading: boolean
   login: () => Promise<void>
+  loginWithEmail: (email: string, password: string) => Promise<{ error: any }>
+  signUpWithEmail: (email: string, password: string, name: string) => Promise<{ error: any }>
   logout: () => Promise<void>
 }
 
@@ -95,13 +97,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) console.error('Login error:', error.message)
   }
 
+  const loginWithEmail = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return { error }
+  }
+
+  const signUpWithEmail = async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        }
+      }
+    })
+    return { error }
+  }
+
   const logout = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) console.error('Logout error:', error.message)
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, profile, loading, login, loginWithEmail, signUpWithEmail, logout }}>
       {children}
     </AuthContext.Provider>
   )
