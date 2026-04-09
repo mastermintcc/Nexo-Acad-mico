@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useDropzone } from 'react-dropzone'
-import { FileText, Upload, Loader2, Download, CheckCircle2 } from 'lucide-react'
+import { FileText, Upload, Loader2, Download, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react'
 import { analyzeAcademicWork } from '@/lib/gemini'
 import { jsPDF } from 'jspdf'
 import { motion, AnimatePresence } from 'motion/react'
@@ -112,7 +112,7 @@ export default function HomePage() {
               <p className="text-black/60 max-w-xl mx-auto">Funcionalidades desenhadas para elevar o nível da sua produção acadêmica.</p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               <Card className="border-2 border-black rounded-[40px] p-8 hover:shadow-2xl transition-all group">
                 <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-8 group-hover:rotate-6 transition-transform">
                   <FileText size={32} />
@@ -132,6 +132,9 @@ export default function HomePage() {
                     <CheckCircle2 size={18} className="text-blue-600" /> Exportação em PDF
                   </li>
                 </ul>
+                <Link href="/analise" className="mt-8 block">
+                  <Button className="w-full bg-black text-white rounded-xl font-bold">Acessar</Button>
+                </Link>
               </Card>
 
               <Card className="border-2 border-black rounded-[40px] p-8 hover:shadow-2xl transition-all group">
@@ -153,6 +156,36 @@ export default function HomePage() {
                     <CheckCircle2 size={18} className="text-black" /> Síntese de Resultados
                   </li>
                 </ul>
+                <Link href="/analise" className="mt-8 block">
+                  <Button className="w-full bg-black text-white rounded-xl font-bold">Acessar</Button>
+                </Link>
+              </Card>
+
+              <Card className="border-2 border-blue-600 rounded-[40px] p-8 hover:shadow-2xl transition-all group bg-blue-50/30 relative overflow-hidden">
+                <div className="absolute top-4 right-4">
+                  <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">Novo</span>
+                </div>
+                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-8 group-hover:scale-110 transition-transform">
+                  <RefreshCw size={32} />
+                </div>
+                <h3 className="text-3xl font-black mb-4">P Paragfrase</h3>
+                <p className="text-black/60 text-lg mb-6">
+                  Reescreva e aperfeiçoe seus textos com IA. Melhore a fluidez e evite plágio com paráfrases inteligentes e personalizadas.
+                </p>
+                <ul className="space-y-3">
+                  <li className="flex items-center gap-2 font-bold text-sm text-blue-600">
+                    <Sparkles size={18} /> Tons Personalizados
+                  </li>
+                  <li className="flex items-center gap-2 font-bold text-sm text-blue-600">
+                    <Sparkles size={18} /> Até 5000 Caracteres
+                  </li>
+                  <li className="flex items-center gap-2 font-bold text-sm text-blue-600">
+                    <Sparkles size={18} /> Sem Cópias Literais
+                  </li>
+                </ul>
+                <Link href="/paragfrase" className="mt-8 block">
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20">Acessar P Paragfrase</Button>
+                </Link>
               </Card>
             </div>
           </div>
@@ -187,6 +220,7 @@ export default function HomePage() {
           <p className="text-sm text-black/40 font-bold">© 2026 Nexo Acadêmico. Todos os direitos reservados.</p>
           <div className="flex gap-8">
             <Link href="/analise" className="text-sm font-bold hover:text-blue-600 transition-colors">Análise</Link>
+            <Link href="/paragfrase" className="text-sm font-bold hover:text-blue-600 transition-colors">P Paragfrase</Link>
             {profile?.role === 'admin' && (
               <Link href="/crm" className="text-sm font-bold hover:text-blue-600 transition-colors">CRM</Link>
             )}

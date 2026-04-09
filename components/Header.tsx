@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Button } from './ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu'
-import { User, LogOut, Shield, Clock } from 'lucide-react'
+import { User, LogOut, Shield, Clock, RefreshCw } from 'lucide-react'
 import AuthModal from './AuthModal'
 
 export default function Header() {
@@ -41,6 +41,10 @@ export default function Header() {
                     <p className="text-xs text-black/60">{user.email}</p>
                   </div>
                 </div>
+                <DropdownMenuItem render={<Link href="/paragfrase" className="flex items-center gap-2 font-bold" />}>
+                  <RefreshCw size={16} />
+                  P Paragfrase
+                </DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/historico" className="flex items-center gap-2 font-bold" />}>
                   <Clock size={16} />
                   Histórico
