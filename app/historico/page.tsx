@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button'
 import { FileText, Download, Trash2, Loader2, Clock, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@/hooks/useAuth'
-import { db } from '@/lib/firebase'
-import { collection, query, where, onSnapshot, orderBy, deleteDoc, doc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase'
 import { jsPDF } from 'jspdf'
 import Link from 'next/link'
 
@@ -22,19 +21,39 @@ export default function HistoricoPage() {
   useEffect(() => {
     if (!user) return
 
-    const q = query(
-      collection(db, 'analyses'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    )
+    const fetchAnalyses = async () => {
+      const { data, error } = await supabase
+        .from('analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      setAnalyses(data)
+      if (error) {
+        console.error('Error fetching analyses:', error.message)
+      } else {
+        setAnalyses(data || [])
+      }
       setLoading(false)
-    })
+    }
 
-    return () => unsubscribe()
+    fetchAnalyses()
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('analyses-changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'analyses',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        fetchAnalyses()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [user])
 
   const downloadPDF = (analysis: any) => {
@@ -43,16 +62,20 @@ export default function HistoricoPage() {
     doc.setFontSize(16)
     doc.text(`Nexo Acadêmico - ${analysis.type === 'fichamento' ? 'Fichamento' : 'Resenha'}`, 10, 10)
     doc.setFontSize(10)
-    doc.text(`Arquivo: ${analysis.fileName}`, 10, 18)
+    doc.text(`Arquivo: ${analysis.file_name}`, 10, 18)
     doc.setFontSize(12)
     doc.text(splitText, 10, 30)
-    doc.save(`${analysis.type}_${analysis.fileName}.pdf`)
+    doc.save(`${analysis.type}_${analysis.file_name}.pdf`)
   }
 
   const deleteAnalysis = async (id: string) => {
     if (confirm('Deseja excluir esta análise permanentemente?')) {
       try {
-        await deleteDoc(doc(db, 'analyses', id))
+        const { error } = await supabase
+          .from('analyses')
+          .delete()
+          .eq('id', id)
+        if (error) throw error
       } catch (error) {
         console.error(error)
       }
@@ -130,10 +153,10 @@ export default function HistoricoPage() {
                           <Trash2 size={18} />
                         </button>
                       </div>
-                      <CardTitle className="text-lg font-bold line-clamp-1">{analysis.fileName}</CardTitle>
+                      <CardTitle className="text-lg font-bold line-clamp-1">{analysis.file_name}</CardTitle>
                       <CardDescription className="text-white/60 flex items-center gap-1 text-xs">
                         <Clock size={12} />
-                        {analysis.createdAt?.toDate().toLocaleDateString('pt-BR')}
+                        {new Date(analysis.created_at).toLocaleDateString('pt-BR')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6 flex-grow flex flex-col justify-between">

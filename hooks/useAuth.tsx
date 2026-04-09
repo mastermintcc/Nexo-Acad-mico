@@ -1,12 +1,11 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { auth, db } from '@/lib/firebase'
-import { onAuthStateChanged, User as FirebaseUser, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth'
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase'
+import { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
-  user: FirebaseUser | null
+  user: User | null
   profile: any | null
   loading: boolean
   login: () => Promise<void>
@@ -16,52 +15,89 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseUser | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      setUser(u)
-      if (u) {
-        // Sync profile
-        const userRef = doc(db, 'users', u.uid)
-        const snap = await getDoc(userRef)
-        
-        if (!snap.exists()) {
-          const isAdminEmail = u.email === 'mastermintcc@gmail.com'
-          const newProfile = {
-            uid: u.uid,
-            name: u.displayName || 'Usuário',
-            email: u.email || '',
-            role: isAdminEmail ? 'admin' : 'viewer',
-            status: 'Ativo'
-          }
-          await setDoc(userRef, newProfile)
-          setProfile(newProfile)
-        }
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        fetchProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
 
-        // Listen for profile changes
-        onSnapshot(userRef, (doc) => {
-          setProfile(doc.data())
-          setLoading(false)
-        })
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      
+      if (currentUser) {
+        await fetchProfile(currentUser.id)
       } else {
         setProfile(null)
         setLoading(false)
       }
     })
 
-    return () => unsubscribe()
+    return () => subscription.unsubscribe()
   }, [])
 
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        const { data: userData } = await supabase.auth.getUser()
+        const u = userData.user
+        if (u) {
+          const isAdminEmail = u.email === 'mastermintcc@gmail.com'
+          const newProfile = {
+            id: u.id,
+            name: u.user_metadata?.full_name || 'Usuário',
+            email: u.email || '',
+            role: isAdminEmail ? 'admin' : 'viewer',
+            status: 'Ativo'
+          }
+          const { data: createdProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([newProfile])
+            .select()
+            .single()
+          
+          if (!createError) setProfile(createdProfile)
+        }
+      } else if (data) {
+        setProfile(data)
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const login = async () => {
-    const provider = new GoogleAuthProvider()
-    await signInWithPopup(auth, provider)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    })
+    if (error) console.error('Login error:', error.message)
   }
 
   const logout = async () => {
-    await signOut(auth)
+    const { error } = await supabase.auth.signOut()
+    if (error) console.error('Logout error:', error.message)
   }
 
   return (

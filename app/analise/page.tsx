@@ -12,8 +12,7 @@ import { analyzeAcademicWork } from '@/lib/gemini'
 import { jsPDF } from 'jspdf'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '@/hooks/useAuth'
-import { db } from '@/lib/firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase'
 import mammoth from 'mammoth'
 import Logo from '@/components/Logo'
 import Link from 'next/link'
@@ -69,14 +68,14 @@ export default function AnalisePage() {
       setResult(finalResult)
 
       if (user) {
-        await addDoc(collection(db, 'analyses'), {
-          userId: user.uid,
-          fileName: file.name,
-          fileType: file.type,
+        const { error } = await supabase.from('analyses').insert({
+          user_id: user.id,
+          file_name: file.name,
+          file_type: file.type,
           result: finalResult,
-          type: analysisType,
-          createdAt: serverTimestamp()
+          type: analysisType
         })
+        if (error) console.error('Error saving analysis:', error.message)
       }
 
       setLoading(false)

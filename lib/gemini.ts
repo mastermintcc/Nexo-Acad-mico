@@ -2,9 +2,21 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+let aiClient: any = null;
+
+function getAiClient() {
+  if (!aiClient) {
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('A chave de API do Gemini (NEXT_PUBLIC_GEMINI_API_KEY) não foi configurada nas variáveis de ambiente.');
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
 
 export async function analyzeAcademicWork(fileBase64: string, mimeType: string, type: 'fichamento' | 'resenha') {
+  const ai = getAiClient();
   const model = "gemini-3-flash-preview";
   
   const prompt = type === 'fichamento' 

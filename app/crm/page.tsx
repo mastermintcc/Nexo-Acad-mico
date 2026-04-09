@@ -10,8 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoreHorizontal, Shield, User, UserCog, Search, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
-import { db } from '@/lib/firebase'
-import { collection, onSnapshot, doc, updateDoc, deleteDoc } from 'firebase/firestore'
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
@@ -29,13 +28,32 @@ export default function CRMPage() {
   }, [profile, router])
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      setUsers(usersData)
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+      
+      if (error) {
+        console.error('Error fetching users:', error.message)
+      } else {
+        setUsers(data || [])
+      }
       setLoading(false)
-    })
+    }
 
-    return () => unsubscribe()
+    fetchUsers()
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('profiles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchUsers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const filteredUsers = users.filter(u => 
@@ -45,7 +63,11 @@ export default function CRMPage() {
 
   const updateRole = async (userId: string, newRole: string) => {
     try {
-      await updateDoc(doc(db, 'users', userId), { role: newRole })
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId)
+      if (error) throw error
     } catch (error) {
       console.error(error)
     }
@@ -54,7 +76,11 @@ export default function CRMPage() {
   const removeUser = async (userId: string) => {
     if (confirm('Tem certeza que deseja remover este usuário?')) {
       try {
-        await deleteDoc(doc(db, 'users', userId))
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', userId)
+        if (error) throw error
       } catch (error) {
         console.error(error)
       }

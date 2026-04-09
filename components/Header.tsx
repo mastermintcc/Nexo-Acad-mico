@@ -30,12 +30,12 @@ export default function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" className="relative h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold" />}>
-                {user.displayName?.charAt(0) || 'U'}
+                {(user.user_metadata?.full_name || user.email)?.charAt(0).toUpperCase() || 'U'}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 rounded-xl border-2 border-black shadow-xl">
                 <div className="flex items-center justify-start gap-2 p-2">
                   <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-bold">{user.displayName}</p>
+                    <p className="font-bold">{user.user_metadata?.full_name || 'Usuário'}</p>
                     <p className="text-xs text-black/60">{user.email}</p>
                   </div>
                 </div>
