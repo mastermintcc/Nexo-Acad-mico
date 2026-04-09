@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Plataform user with permissions",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "editor", "viewer"] },
+        "status": { "type": "string", "enum": ["Ativo", "Pendente", "Inativo"] },
+        "uid": { "type": "string" }
+      },
+      "required": ["name", "email", "role", "uid"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "Academic analysis result",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileType": { "type": "string" },
+        "result": { "type": "string" },
+        "type": { "type": "string", "enum": ["fichamento", "resenha"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fileName", "result", "type", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and permissions"
+    },
+    "/analyses/{analysisId}": {
+      "schema": "Analysis",
+      "description": "Academic analysis records"
+    }
+  }
+}
