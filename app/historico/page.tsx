@@ -83,7 +83,7 @@ export default function HistoricoPage() {
   }
 
   const filteredAnalyses = analyses.filter(a => 
-    a.fileName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.file_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.type?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 

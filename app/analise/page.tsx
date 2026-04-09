@@ -41,10 +41,26 @@ export default function AnalisePage() {
 
   const handleAnalyze = async () => {
     if (!file) return
+    if (!user) {
+      alert('Você precisa estar logado para realizar uma análise.')
+      return
+    }
     setLoading(true)
     setResult(null)
 
     try {
+      // 1. Upload do arquivo para o Supabase Storage (Bucket: Caixadetalha)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}/${Math.random()}.${fileExt}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('Caixadetalha')
+        .upload(fileName, file)
+
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError.message)
+        // Continuamos mesmo se o upload falhar, mas avisamos no console
+      }
+
       let contentBase64 = ''
       let mimeType = file.type
 
@@ -73,7 +89,8 @@ export default function AnalisePage() {
           file_name: file.name,
           file_type: file.type,
           result: finalResult,
-          type: analysisType
+          type: analysisType,
+          file_path: uploadData?.path || null // Salvamos o caminho do arquivo se o upload deu certo
         })
         if (error) console.error('Error saving analysis:', error.message)
       }

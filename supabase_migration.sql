@@ -41,6 +41,7 @@ create table if not exists public.analyses (
   user_id uuid references auth.users on delete cascade not null,
   file_name text not null,
   file_type text not null,
+  file_path text,
   result text not null,
   type text not null check (type in ('fichamento', 'resenha')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -100,16 +101,15 @@ create trigger on_auth_user_created
 -- ==========================================
 -- Instruções para o Dashboard do Supabase:
 -- 1. Vá em 'Storage' -> 'New Bucket'
--- 2. Nome: 'academic-documents'
--- 3. Public: OFF (Privado)
+-- 2. Nome: 'Caixadetalha'
+-- 3. Public: OFF (Privado) ou ON (Público) conforme sua preferência.
 -- 4. Rode as políticas abaixo no SQL Editor para garantir privacidade:
 
-/*
 -- Política para Upload (Pasta organizada por ID do usuário)
 create policy "Upload de documentos próprios"
 on storage.objects for insert
 with check (
-  bucket_id = 'academic-documents' AND
+  bucket_id = 'Caixadetalha' AND
   (storage.foldername(name))[1] = auth.uid()::text
 );
 
@@ -117,7 +117,14 @@ with check (
 create policy "Leitura de documentos próprios"
 on storage.objects for select
 using (
-  bucket_id = 'academic-documents' AND
+  bucket_id = 'Caixadetalha' AND
   (storage.foldername(name))[1] = auth.uid()::text
 );
-*/
+
+-- Política para Deleção
+create policy "Deleção de documentos próprios"
+on storage.objects for delete
+using (
+  bucket_id = 'Caixadetalha' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
